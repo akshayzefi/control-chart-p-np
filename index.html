@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Client-side p-chart and np-chart calculator for industrial engineering labs." />
+  <title>Attribute Control Charts – P & NP</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Attribute Control Charts home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-wordmark">22P602 - Akshay Das M C G</span>
+      </a>
+      <div class="header-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Client-side tool</span>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+          <span class="theme-toggle-icon" aria-hidden="true">☾</span>
+          <span class="theme-toggle-label">Dark</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">19P710 - Industrial Engineering &amp; Lean Practices Laboratory</p>
+          <h1 id="page-title">Attribute Control Charts <span>— P & NP</span></h1>
+          <p class="hero-subtitle">Web-based calculator for Industrial Engineering Lean Practices.</p>
+        </div>
+        <div class="hero-note" aria-label="What this tool does">
+          <span class="hero-note-index">01</span>
+          <span>Turn subgroup observations into a clear signal about process stability.</span>
+        </div>
+      </section>
+
+      <div class="workspace-grid">
+        <section class="card input-card" aria-labelledby="input-title">
+          <div class="card-heading">
+            <div>
+              <p class="section-kicker">DATA SOURCE</p>
+              <h2 id="input-title">Build your sample</h2>
+            </div>
+            <span class="card-index">01</span>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Data source">
+            <button class="tab is-active" id="manual-tab" role="tab" aria-selected="true" aria-controls="manual-panel" data-tab="manual">Manual input</button>
+            <button class="tab" id="csv-tab" role="tab" aria-selected="false" aria-controls="csv-panel" data-tab="csv">Paste CSV</button>
+            <button class="tab" id="demo-tab" role="tab" aria-selected="false" aria-controls="demo-panel" data-tab="demo">Demo data</button>
+          </div>
+
+          <div class="tab-panel is-active" id="manual-panel" role="tabpanel" aria-labelledby="manual-tab">
+            <div class="table-toolbar">
+              <div>
+                <h3>Subgroups</h3>
+                <p class="helper-text">One row per day, batch, or hour.</p>
+              </div>
+              <button class="button button-quiet" id="add-row" type="button"><span aria-hidden="true">＋</span> Add row</button>
+            </div>
+            <div class="data-table-wrap">
+              <table class="data-entry-table">
+                <thead>
+                  <tr><th scope="col">Label</th><th scope="col">Sample size <span class="mono">n</span></th><th scope="col">Defectives <span class="mono">d</span></th><th scope="col"><span class="sr-only">Remove</span></th></tr>
+                </thead>
+                <tbody id="input-rows"></tbody>
+              </table>
+            </div>
+            <div class="manual-actions">
+              <button class="button button-text" id="reset-data" type="button">Reset rows</button>
+              <span class="row-count" id="row-count">0 subgroups</span>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="csv-panel" role="tabpanel" aria-labelledby="csv-tab" hidden>
+            <label class="field-label" for="csv-input">Paste comma-separated values</label>
+            <textarea id="csv-input" rows="9" spellcheck="false" placeholder="Label,n,d&#10;Day 1,100,4&#10;Day 2,120,5&#10;Day 3,100,3"></textarea>
+            <div class="file-import" aria-labelledby="file-import-title">
+              <div class="file-import-heading">
+                <div>
+                  <h3 id="file-import-title">Upload a dataset</h3>
+                  <p class="helper-text">Import <span class="mono">Label,n,d</span> rows directly and calculate immediately.</p>
+                </div>
+                <span class="file-import-badge">LOCAL ONLY</span>
+              </div>
+              <div class="upload-grid">
+                <label class="file-picker">
+                  <span class="file-picker-icon" aria-hidden="true">CSV</span>
+                  <span><strong>CSV file</strong><small>.csv · comma-separated</small></span>
+                  <input id="csv-file" type="file" accept=".csv,text/csv" />
+                </label>
+                <label class="file-picker">
+                  <span class="file-picker-icon file-picker-icon-sheet" aria-hidden="true">XLSX</span>
+                  <span><strong>Excel workbook</strong><small>.xlsx · first sheet used</small></span>
+                  <input id="xlsx-file" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+                </label>
+              </div>
+              <p class="file-import-status" id="file-import-status" aria-live="polite">Files are parsed in your browser and never uploaded.</p>
+            </div>
+            <div class="csv-actions">
+              <p class="helper-text">Header row is optional. Values must be <span class="mono">Label,n,d</span>.</p>
+              <button class="button button-secondary" id="parse-csv" type="button">Parse CSV</button>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="demo-panel" role="tabpanel" aria-labelledby="demo-tab" hidden>
+            <p class="demo-intro">Use a prepared sample to explore how variable and constant sample sizes change the chart.</p>
+            <div class="demo-list">
+              <button class="demo-option" id="demo-piston" type="button">
+                <span class="demo-option-icon" aria-hidden="true">p</span>
+                <span><strong>Piston manufacturing</strong><small>p-chart · variable sample size</small></span>
+                <span class="arrow" aria-hidden="true">↗</span>
+              </button>
+              <button class="demo-option" id="demo-antibiotic" type="button">
+                <span class="demo-option-icon" aria-hidden="true">np</span>
+                <span><strong>Antibiotic manufacturing</strong><small>np-chart · constant n = 500</small></span>
+                <span class="arrow" aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="control-divider"></div>
+          <div class="chart-type-block">
+            <div>
+              <h3>Chart type</h3>
+              <p class="helper-text">Auto selects np only when every <span class="mono">n</span> is equal.</p>
+            </div>
+            <fieldset class="radio-group">
+              <legend class="sr-only">Chart type</legend>
+              <label class="radio-option"><input type="radio" name="chart-type" value="auto" checked /><span>Auto</span></label>
+              <label class="radio-option"><input type="radio" name="chart-type" value="p" /><span>Force p-chart</span></label>
+              <label class="radio-option"><input type="radio" name="chart-type" value="np" /><span>Force np-chart</span></label>
+            </fieldset>
+          </div>
+          <button class="button button-primary compute-button" id="compute-chart" type="button"><span>Compute chart</span><span class="button-arrow" aria-hidden="true">→</span></button>
+          <p class="form-message" id="form-message" role="alert" aria-live="polite"></p>
+        </section>
+
+        <section class="card results-card" aria-labelledby="results-title">
+          <div class="card-heading results-heading">
+            <div>
+              <p class="section-kicker">PROCESS SIGNAL</p>
+              <h2 id="results-title">Statistics &amp; chart</h2>
+            </div>
+            <div class="results-actions">
+              <span class="chart-badge" id="chart-badge">Waiting for data</span>
+              <div class="export-actions" aria-label="Export results">
+                <button class="export-button" id="export-png" type="button" disabled>PNG</button>
+                <button class="export-button" id="export-csv" type="button" disabled>CSV</button>
+                <button class="export-button export-button-primary" id="export-pdf" type="button" disabled>PDF report</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-grid" id="stats-grid" aria-live="polite">
+            <div class="stat-tile stat-empty"><span class="stat-label">Status</span><strong>Ready to compute</strong><span class="stat-detail">Your chart will appear here.</span></div>
+          </div>
+
+          <div class="chart-panel">
+            <div class="chart-topline">
+              <div>
+                <h3 id="chart-title">Control chart preview</h3>
+                <p id="chart-subtitle">Enter observations and select “Compute chart”.</p>
+              </div>
+              <span class="legend-note"><i class="legend-dot in-control"></i> In control <i class="legend-dot out-control"></i> Out of control</span>
+            </div>
+            <div class="chart-canvas-wrap"><canvas id="control-chart" aria-label="Control chart" role="img"></canvas><div class="chart-empty" id="chart-empty"><span class="empty-pulse" aria-hidden="true"></span><strong>Your signal will land here.</strong><span>Chart lines and subgroup points appear after calculation.</span></div></div>
+          </div>
+
+          <div class="results-table-header">
+            <div><h3>Subgroup detail</h3><p class="helper-text" id="table-caption">Showing the first 10 rows.</p></div>
+            <span class="table-unit" id="table-unit">—</span>
+          </div>
+          <div class="results-table-wrap">
+            <table class="results-table">
+              <thead id="results-head"><tr><th scope="col">Label</th><th scope="col">n</th><th scope="col">d</th><th scope="col">p</th><th scope="col">CL</th><th scope="col">UCL</th><th scope="col">LCL</th><th scope="col">Signal</th></tr></thead>
+              <tbody id="results-body"><tr class="empty-row"><td colspan="8">No calculation yet.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <section class="card interpretation-card" aria-labelledby="interpretation-title">
+        <div class="interpretation-label"><span class="signal-glyph" aria-hidden="true">∿</span><span>READ THE SIGNAL</span></div>
+        <div class="interpretation-content">
+          <h2 id="interpretation-title">Interpretation</h2>
+          <p id="interpretation-text">Load a sample and compute the chart to receive a plain-language process readout.</p>
+          <div class="interpretation-tags" id="interpretation-tags"><span class="tag tag-muted">Awaiting calculation</span></div>
+          <div class="advanced-rules" id="advanced-rules" aria-live="polite"></div>
+        </div>
+        <div class="rule-note"><span class="rule-number">RULE 01</span><span>Points beyond the 3-sigma limits are flagged. A run of eight points on one side of the center line is also called out.</span></div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span>Developed By</span><span class="footer-separator">/</span><span>Akshay Das (22P602)</span><span class="footer-spacer"></span><span>p &amp; np / 01</span></footer>
+  </div>
+</body>
+</html>
